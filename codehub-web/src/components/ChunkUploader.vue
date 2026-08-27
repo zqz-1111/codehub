@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Upload } from '@element-plus/icons-vue'
+import { Files } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const props = defineProps<{
@@ -27,7 +27,6 @@ async function handleUpload(uploadOption: any) {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
 
   try {
-    // 逐个上传分片
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE
       const end = Math.min(start + CHUNK_SIZE, file.size)
@@ -46,7 +45,6 @@ async function handleUpload(uploadOption: any) {
       progress.value = Math.round(((i + 1) / totalChunks) * 100)
     }
 
-    // 合并分片
     await request.post(`/repos/${props.repoId}/files/chunks/merge`, null, {
       params: {
         uploadId,
@@ -55,10 +53,10 @@ async function handleUpload(uploadOption: any) {
       },
     })
 
-    ElMessage.success('上传成功')
+    ElMessage.success(`大文件「${file.name}」分片秒传并合并完成`)
     emit('uploaded')
   } catch (e: any) {
-    ElMessage.error('上传失败: ' + (e.message || '未知错误'))
+    ElMessage.error('分片上传失败: ' + (e.message || '网络异常'))
   } finally {
     uploading.value = false
     progress.value = 0
@@ -71,15 +69,51 @@ function generateUploadId(): string {
 </script>
 
 <template>
-  <el-upload
-    :show-file-list="false"
-    :http-request="handleUpload"
-    :disabled="uploading"
-    accept="*"
-  >
-    <el-button :loading="uploading" :icon="Upload">
-      {{ uploading ? `上传中 ${progress}%` : '分片上传' }}
-    </el-button>
-  </el-upload>
-  <el-progress v-if="uploading" :percentage="progress" style="margin-top: 8px" />
+  <div class="chunk-uploader-wrap">
+    <el-upload
+      :show-file-list="false"
+      :http-request="handleUpload"
+      :disabled="uploading"
+      accept="*"
+    >
+      <button class="chunk-upload-btn" :disabled="uploading" title="1MB 分片大文件秒传">
+        <el-icon><Files /></el-icon>
+        <span v-if="!uploading">分片秒传</span>
+        <span v-else>{{ progress }}%</span>
+      </button>
+    </el-upload>
+  </div>
 </template>
+
+<style scoped>
+.chunk-uploader-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chunk-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chunk-upload-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.chunk-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+</style>
