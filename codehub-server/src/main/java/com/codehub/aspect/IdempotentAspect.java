@@ -8,11 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,18 +32,44 @@ public class IdempotentAspect {
 
     private final StringRedisTemplate redisTemplate;
 
-    @Around("@annotation(idempotent)")
-    public Object around(ProceedingJoinPoint joinPoint, Idempotent idempotent) throws Throwable {
-        HttpServletRequest request = ((ServletRequestAttributes)
-                RequestContextHolder.currentRequestAttributes()).getRequest();
+    @Around("@annotation(com.codehub.annotation.Idempotent)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = signature.getMethod();
+        Idempotent idempotent = AnnotationUtils.findAnnotation(method, Idempotent.class);
+        if (idempotent == null) {
+            return joinPoint.proceed();
+        }
+
+        HttpServletRequest request = null;
+        for (Object arg : joinPoint.getArgs()) {
+            if (arg instanceof HttpServletRequest req) {
+                request = req;
+                break;
+            }
+        }
+        if (request == null) {
+            var requestAttributes = RequestContextHolder.getRequestAttributes();
+            if (requestAttributes instanceof ServletRequestAttributes servletAttributes) {
+                request = servletAttributes.getRequest();
+            }
+        }
+
+        if (request == null) {
+            log.warn("无法获取HttpServletRequest，跳过幂等控制");
+            return joinPoint.proceed();
+        }
 
         // 未登录的请求不做幂等控制（由鉴权层负责）
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
+            log.info("未获取到userId，跳过幂等检查");
             return joinPoint.proceed();
         }
 
         String key = buildKey(userId, joinPoint);
+        log.info("执行幂等检查: key={}, window={}s", key, idempotent.windowSeconds());
+
         Boolean firstTime = redisTemplate.opsForValue()
                 .setIfAbsent(key, "1", idempotent.windowSeconds(), TimeUnit.SECONDS);
 
@@ -71,6 +100,6 @@ public class IdempotentAspect {
                 args.append(arg.toString()).append("|");
             }
         }
-        return "idempotent:" + userId + ":" + method + ":" + args.hashCode();
+        return "idempotent:" + userId + ":" + method + ":" + args.toString().hashCode();
     }
 }
