@@ -3,6 +3,10 @@
 *.env
 .env.*
 !.env.example
+*.key
+*.pem
+*.secret
+credentials.json
 
 # ====== 后端构建产物 ======
 codehub-server/target/
