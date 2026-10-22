@@ -10,12 +10,16 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,11 +35,17 @@ import java.util.concurrent.TimeUnit;
 public class IdempotentAspect {
 
     private final StringRedisTemplate redisTemplate;
+    private final IdempotencyKeyGenerator keyGenerator;
+
+    // Compare ownership and delete atomically; an expired request must not delete its successor.
+    private static final DefaultRedisScript<Long> RELEASE_SCRIPT = new DefaultRedisScript<>(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+                    + "return redis.call('del', KEYS[1]) else return 0 end", Long.class);
 
     @Around("@annotation(com.codehub.annotation.Idempotent)")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
+        Method method = AopUtils.getMostSpecificMethod(signature.getMethod(), joinPoint.getTarget().getClass());
         Idempotent idempotent = AnnotationUtils.findAnnotation(method, Idempotent.class);
         if (idempotent == null) {
             return joinPoint.proceed();
@@ -67,13 +77,20 @@ public class IdempotentAspect {
             return joinPoint.proceed();
         }
 
-        String key = buildKey(userId, joinPoint);
+        if (idempotent.windowSeconds() <= 0) {
+            throw new IllegalStateException("防重窗口必须大于0秒");
+        }
+        String key = keyGenerator.generate(userId, method, joinPoint.getArgs());
+        String requestToken = UUID.randomUUID().toString();
         log.info("执行幂等检查: key={}, window={}s", key, idempotent.windowSeconds());
 
         Boolean firstTime = redisTemplate.opsForValue()
-                .setIfAbsent(key, "1", idempotent.windowSeconds(), TimeUnit.SECONDS);
+                .setIfAbsent(key, requestToken, idempotent.windowSeconds(), TimeUnit.SECONDS);
 
-        if (firstTime == null || !firstTime) {
+        if (firstTime == null) {
+            throw new BusinessException(503, "防重服务暂不可用，请稍后重试");
+        }
+        if (!firstTime) {
             log.warn("重复提交被拦截: user={}, key={}", userId, key);
             throw new BusinessException(429, idempotent.message());
         }
@@ -81,25 +98,16 @@ public class IdempotentAspect {
         try {
             return joinPoint.proceed();
         } catch (Throwable e) {
-            // 业务失败时释放幂等标记，允许用户立即重试
-            redisTemplate.delete(key);
+            // Keep the existing exception retry policy, but release only our own marker.
+            // This is short-window duplicate suppression, not proof of business rollback.
+            try {
+                redisTemplate.execute(RELEASE_SCRIPT, List.of(key), requestToken);
+            } catch (Exception releaseFailure) {
+                // Preserve the original business exception; TTL bounds a failed cleanup.
+                log.warn("防重标记释放失败，等待过期: key={}", key, releaseFailure);
+                e.addSuppressed(releaseFailure);
+            }
             throw e;
         }
-    }
-
-    /**
-     * Key = 注解所在类.方法名 + 参数内容摘要
-     * 参数相同才算重复（改名后重新提交是合法操作）
-     */
-    private String buildKey(Long userId, ProceedingJoinPoint joinPoint) {
-        String method = joinPoint.getSignature().toShortString();
-        StringBuilder args = new StringBuilder();
-        for (Object arg : joinPoint.getArgs()) {
-            // 跳过HttpServletRequest等非业务参数
-            if (arg != null && !(arg instanceof HttpServletRequest)) {
-                args.append(arg.toString()).append("|");
-            }
-        }
-        return "idempotent:" + userId + ":" + method + ":" + args.toString().hashCode();
     }
 }

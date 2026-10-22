@@ -41,7 +41,7 @@ public class IdempotentIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        var keys = redisTemplate.keys("idempotent:999:*");
+        var keys = redisTemplate.keys("idempotent:v2:999:*");
         if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
         }
