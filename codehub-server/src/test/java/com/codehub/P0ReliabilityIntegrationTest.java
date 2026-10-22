@@ -91,21 +91,21 @@ public class P0ReliabilityIntegrationTest {
     }
 
     @Test
-    @DisplayName("2. 测试大文件分片合并防连点分布式锁（waitTime=0 拒绝语义）")
+    @DisplayName("2. 测试上传会话共享锁（waitTime=0 + watchdog）")
     void testChunkMergeDistributedLock() throws Exception {
         String uploadId = UUID.randomUUID().toString();
-        String lockKey = "lock:merge:" + uploadId;
+        String lockKey = "lock:upload:" + uploadId;
         RLock lock1 = redissonClient.getLock(lockKey);
 
-        // 第一个请求正在合并分片（获取锁，租期30秒）
-        boolean firstMergeAcquired = lock1.tryLock(0, 30, TimeUnit.SECONDS);
+        // 不指定固定租期，使用 Redisson watchdog；上传和合并共用此会话锁。
+        boolean firstMergeAcquired = lock1.tryLock(0, TimeUnit.SECONDS);
         assertTrue(firstMergeAcquired, "第一次合并请求应立即获得锁");
 
         // 第二个并发/连点请求尝试获取锁（waitTime=0，立即返回 false）
         CompletableFuture<Boolean> secondMerge = CompletableFuture.supplyAsync(() -> {
             RLock lock2 = redissonClient.getLock(lockKey);
             try {
-                return lock2.tryLock(0, 30, TimeUnit.SECONDS);
+                return lock2.tryLock(0, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 return false;
             }

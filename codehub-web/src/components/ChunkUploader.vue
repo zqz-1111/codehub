@@ -19,6 +19,10 @@ const CHUNK_SIZE = 1024 * 1024 // 1MB per chunk
 async function handleUpload(uploadOption: any) {
   const file = uploadOption.file as File
   if (!file) return
+  if (file.size === 0) {
+    ElMessage.warning('请选择非空文件')
+    return
+  }
 
   uploading.value = true
   progress.value = 0
@@ -51,9 +55,10 @@ async function handleUpload(uploadOption: any) {
         fileName: file.name,
         path: file.name,
       },
+      timeout: 120000,
     })
 
-    ElMessage.success(`大文件「${file.name}」分片秒传并合并完成`)
+    ElMessage.success(`大文件「${file.name}」分片上传并合并完成`)
     emit('uploaded')
   } catch (e: any) {
     ElMessage.error('分片上传失败: ' + (e.message || '网络异常'))
@@ -64,7 +69,7 @@ async function handleUpload(uploadOption: any) {
 }
 
 function generateUploadId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8)
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
 }
 </script>
 
@@ -76,9 +81,9 @@ function generateUploadId(): string {
       :disabled="uploading"
       accept="*"
     >
-      <button class="chunk-upload-btn" :disabled="uploading" title="1MB 分片大文件秒传">
+      <button class="chunk-upload-btn" :disabled="uploading" title="1MiB 分片上传">
         <el-icon><Files /></el-icon>
-        <span v-if="!uploading">分片秒传</span>
+        <span v-if="!uploading">分片上传</span>
         <span v-else>{{ progress }}%</span>
       </button>
     </el-upload>

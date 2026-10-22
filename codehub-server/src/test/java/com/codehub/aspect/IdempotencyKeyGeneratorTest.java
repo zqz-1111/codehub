@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
@@ -62,6 +63,16 @@ class IdempotencyKeyGeneratorTest {
     @Test
     void serializationFailureDoesNotUseSharedFallbackKey() {
         assertThrows(IllegalStateException.class, () -> key(new BrokenPayload()));
+    }
+
+    @Test
+    void multipartFingerprintIncludesContentAndDoesNotConsumeLaterReads() throws Exception {
+        MockMultipartFile first = new MockMultipartFile("file", "demo.java", "text/plain", new byte[]{1, 2});
+        MockMultipartFile same = new MockMultipartFile("file", "demo.java", "text/plain", new byte[]{1, 2});
+        MockMultipartFile changed = new MockMultipartFile("file", "demo.java", "text/plain", new byte[]{2, 1});
+        assertEquals(key(first), key(same));
+        assertNotEquals(key(first), key(changed));
+        assertArrayEquals(new byte[]{1, 2}, first.getInputStream().readAllBytes());
     }
 
     private String key(Object value) {

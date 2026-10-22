@@ -16,6 +16,7 @@ public class UploadPart {
     private Long repoId;
     private Integer chunkIndex;
     private String objectKey;
+    private Long sizeBytes;
     private String status;  // UPLOADING / MERGED
     private LocalDateTime createdAt;
 }

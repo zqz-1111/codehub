@@ -71,7 +71,22 @@ CREATE TABLE IF NOT EXISTS upload_parts (
     repo_id BIGINT NOT NULL,
     chunk_index INT NOT NULL,
     object_key VARCHAR(200),
+    size_bytes BIGINT,
     status VARCHAR(20) DEFAULT 'UPLOADING' COMMENT 'UPLOADING/MERGED',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_upload_chunk (upload_id, chunk_index)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 上传会话：归属/总片数/持久化合并回执，upload_id不可跨用户复用
+CREATE TABLE IF NOT EXISTS upload_sessions (
+    upload_id VARCHAR(64) PRIMARY KEY,
+    repo_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    total_chunks INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'UPLOADING',
+    merged_file_id BIGINT,
+    merged_path VARCHAR(500),
+    merged_file_name VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

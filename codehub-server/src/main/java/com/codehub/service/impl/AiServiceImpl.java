@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +57,7 @@ public class AiServiceImpl implements AiService {
             """;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void buildIndex(Long repoId, Long fileId, String filePath, String content) {
         // 删除该文件的旧索引
         codeIndexMapper.delete(new LambdaQueryWrapper<CodeIndex>()
