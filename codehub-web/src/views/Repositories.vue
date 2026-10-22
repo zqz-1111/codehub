@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createRepo, listMyRepos, listPublicRepos, deleteRepo } from '../api/repo'
 import type { RepoVO, CreateRepoRequest } from '../api/repo'
 import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // 列表状态
@@ -121,7 +122,14 @@ function goDetail(id: number) {
   router.push(`/repos/${id}`)
 }
 
-onMounted(() => loadRepos())
+onMounted(() => {
+  loadRepos()
+  if (route.query.create === '1') {
+    openCreateDialog()
+    const { create: _create, ...query } = route.query
+    router.replace({ path: route.path, query })
+  }
+})
 </script>
 
 <template>

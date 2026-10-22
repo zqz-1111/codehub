@@ -102,7 +102,8 @@ public class RepositoryServiceImpl extends ServiceImpl<RepositoryMapper, Reposit
         Page<Repository> pageParam = new Page<>(page, size);
         IPage<Repository> result = page(pageParam, new LambdaQueryWrapper<Repository>()
                 .eq(Repository::getOwnerId, userId)
-                .orderByDesc(Repository::getUpdatedAt));
+                .orderByDesc(Repository::getUpdatedAt)
+                .orderByDesc(Repository::getId));
 
         return result.convert(this::toRepoVO);
     }
@@ -112,7 +113,8 @@ public class RepositoryServiceImpl extends ServiceImpl<RepositoryMapper, Reposit
         Page<Repository> pageParam = new Page<>(page, size);
         IPage<Repository> result = page(pageParam, new LambdaQueryWrapper<Repository>()
                 .eq(Repository::getVisibility, "PUBLIC")
-                .orderByDesc(Repository::getUpdatedAt));
+                .orderByDesc(Repository::getUpdatedAt)
+                .orderByDesc(Repository::getId));
 
         return result.convert(this::toRepoVO);
     }

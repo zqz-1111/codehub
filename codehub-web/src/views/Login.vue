@@ -63,8 +63,8 @@ async function handleLogin() {
             <div class="feature-item">
               <div class="feature-icon"><el-icon><UploadFilled /></el-icon></div>
               <div class="feature-text">
-                <div class="feature-heading">MinIO 1MB 切片秒传</div>
-                <div class="feature-desc">大文件并发切片与断点续传，零内存溢出</div>
+                <div class="feature-heading">MinIO 1MiB 分片上传</div>
+                <div class="feature-desc">按片上传，校验完整性后顺序合并</div>
               </div>
             </div>
 
@@ -87,7 +87,7 @@ async function handleLogin() {
         </div>
 
         <div class="brand-footer">
-          <span class="version-tag">Version 2.0 Production-Ready</span>
+          <span class="version-tag">Version 2.0</span>
         </div>
       </div>
 

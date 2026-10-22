@@ -126,7 +126,7 @@ function renderMarkdown(text: string): string {
         </div>
         <div>
           <div class="ai-title">CodeHub AI 智能助手</div>
-          <div class="ai-sub">Qwen 3.7 Plus RAG 流式理解引擎</div>
+          <div class="ai-sub">基于仓库上下文的问答，使用前请配置模型</div>
         </div>
       </div>
 
@@ -148,7 +148,7 @@ function renderMarkdown(text: string): string {
           <el-icon><ChatDotRound /></el-icon>
         </div>
         <h3 class="welcome-title">我可以帮您解析仓库代码</h3>
-        <p class="welcome-desc">基于代码语义切分与向量检索，实时解答逻辑疑问、类依赖与实现原理。</p>
+        <p class="welcome-desc">结合仓库代码上下文与所配置模型，辅助理解代码逻辑、类依赖与实现原理。</p>
 
         <div class="prompt-chips">
           <div class="chip-label">快捷提问：</div>

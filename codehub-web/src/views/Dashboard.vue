@@ -65,7 +65,7 @@ onMounted(() => {
           type="primary"
           size="large"
           class="action-btn"
-          @click="router.push('/repositories')"
+          @click="router.push({ path: '/repositories', query: { create: '1' } })"
         >
           <el-icon><Plus /></el-icon>
           新建代码仓库
@@ -90,7 +90,7 @@ onMounted(() => {
         <div class="metric-info">
           <div class="metric-label">我的代码库</div>
           <div class="metric-value">{{ myTotal }}</div>
-          <div class="metric-trend text-primary">独立拥有或参与</div>
+          <div class="metric-trend text-primary">当前账号拥有的仓库</div>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ onMounted(() => {
         <div class="metric-info">
           <div class="metric-label">全站公共仓库</div>
           <div class="metric-value">{{ publicTotal }}</div>
-          <div class="metric-trend text-info">开源代码可自由克隆</div>
+          <div class="metric-trend text-info">公开仓库可浏览代码</div>
         </div>
       </div>
 
@@ -111,8 +111,8 @@ onMounted(() => {
         </div>
         <div class="metric-info">
           <div class="metric-label">AI 语义问答</div>
-          <div class="metric-value">Qwen 3.7+</div>
-          <div class="metric-trend text-success">NDJSON 流式 RAG 就绪</div>
+          <div class="metric-value">流式交互</div>
+          <div class="metric-trend text-success">回答能力取决于模型配置</div>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ onMounted(() => {
         </div>
         <div class="metric-info">
           <div class="metric-label">P0 可靠性体系</div>
-          <div class="metric-value">100%</div>
+          <div class="metric-value">缓存与防重</div>
           <div class="metric-trend text-warning">RabbitMQ + 幂等 + Redisson</div>
         </div>
       </div>
@@ -153,7 +153,7 @@ onMounted(() => {
             <div class="empty-icon"><el-icon><FolderAdd /></el-icon></div>
             <div class="empty-title">暂无代码仓库</div>
             <p class="empty-desc">立即创建您的第一个代码仓库，体验大模型智能问答</p>
-            <el-button type="primary" @click="router.push('/repositories')">创建仓库</el-button>
+            <el-button type="primary" @click="router.push({ path: '/repositories', query: { create: '1' } })">创建仓库</el-button>
           </div>
 
           <div v-else class="repo-list">
@@ -201,7 +201,7 @@ onMounted(() => {
                 <el-icon><Cpu /></el-icon>
                 <span>P0 高可靠性架构亮点</span>
               </div>
-              <span class="active-badge">8/8 测试通过</span>
+              <span class="active-badge">文件索引与请求防重</span>
             </div>
           </template>
 
@@ -264,7 +264,7 @@ onMounted(() => {
               <div class="step-num">2</div>
               <div class="step-text">
                 <strong>上传源代码或大文件</strong>
-                <p>支持 1MB 分片断点续传，后台自动异步触发 RAG 向量切分。</p>
+                <p>支持 1MiB 分片上传，合并后为符合条件的文本异步构建代码索引。</p>
               </div>
             </div>
 

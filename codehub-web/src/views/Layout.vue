@@ -99,8 +99,8 @@ async function handleLogout() {
         <div class="engine-badge">
           <span class="pulse-dot"></span>
           <div class="engine-info">
-            <div class="engine-name">Qwen 3.7 Plus</div>
-            <div class="engine-status">RAG 索引服务就绪</div>
+            <div class="engine-name">AI 代码助手</div>
+            <div class="engine-status">模型按运行配置连接</div>
           </div>
         </div>
       </div>

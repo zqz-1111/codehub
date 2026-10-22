@@ -22,7 +22,7 @@ export interface Reference {
  */
 export async function* streamAsk(repoId: number, question: string): AsyncGenerator<AiEvent> {
   const token = localStorage.getItem('token')
-  const response = await fetch(`/ai/repos/${repoId}/ask`, {
+  const response = await fetch(`/api/ai/repos/${repoId}/ask`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
