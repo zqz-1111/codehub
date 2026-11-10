@@ -14,7 +14,7 @@ public class CodeIndex {
     private Long id;
     private Long repoId;
     private Long fileId;
-    private String chunkType;     // CLASS / METHOD / FILE
+    private String chunkType;     // 片段类型：CLASS（类）、METHOD（方法）、FILE（文件）
     private String chunkName;     // 类名或方法名
     private String content;       // 代码内容
     private String imports;       // import列表

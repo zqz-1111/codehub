@@ -36,7 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-/** Called only after FileServiceImpl checks repository write permission. */
+/** 只有 FileServiceImpl 检查通过仓库写权限后才调用。 */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -142,7 +142,7 @@ public class ChunkUploadService {
         try {
             temp = Files.createTempFile("codehub-merge-", ".tmp");
             long size = 0;
-            // Sequential I/O to disk bounds heap use; this is not MinIO server-side compose.
+            // 顺序写入磁盘可限制堆内存占用，这里由应用负责拼接。
             try (var output = Files.newOutputStream(temp)) {
                 for (UploadPart part : parts) {
                     try (var input = minio.download(part.getObjectKey())) {
@@ -204,7 +204,7 @@ public class ChunkUploadService {
     }
 
     private <T> T inTransaction(Supplier<T> action) {
-        // Explicit transaction inside the session lock; commit/rollback finishes before unlocking.
+        // 在会话锁内显式开启事务，提交或回滚结束后再解锁。
         TransactionTemplate tx = new TransactionTemplate(transactionManager);
         tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return tx.execute(status -> action.get());
@@ -213,7 +213,7 @@ public class ChunkUploadService {
     private <T> T withLock(String id, Supplier<T> action) {
         RLock lock = redisson.getLock("lock:upload:" + id);
         boolean held;
-        try { held = lock.tryLock(0, TimeUnit.SECONDS); } // Watchdog lease, no fixed 30s expiry.
+        try { held = lock.tryLock(0, TimeUnit.SECONDS); } // 由看门狗续期，锁没有固定的 30 秒过期时间。
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BusinessException("上传操作被中断");

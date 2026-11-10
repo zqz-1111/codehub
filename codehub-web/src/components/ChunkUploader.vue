@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 const uploading = ref(false)
 const progress = ref(0)
-const CHUNK_SIZE = 1024 * 1024 // 1MB per chunk
+const CHUNK_SIZE = 1024 * 1024 // 每片 1 MB
 
 async function handleUpload(uploadOption: any) {
   const file = uploadOption.file as File

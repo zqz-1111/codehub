@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/** Redis commands are mocked here; this suite does not certify a real Redis/Spring deployment. */
+/** 此测试模拟 Redis 命令，真实 Redis 和 Spring 部署需另行验证。 */
 class IdempotentAspectTest {
     private StringRedisTemplate redis;
     private ValueOperations<String, String> values;
@@ -37,7 +37,7 @@ class IdempotentAspectTest {
         when(redis.opsForValue()).thenReturn(values);
         when(values.setIfAbsent(anyString(), anyString(), anyLong(), eq(TimeUnit.SECONDS)))
                 .thenAnswer(call -> markers.putIfAbsent(call.getArgument(0), call.getArgument(1)) == null);
-        // Model the Redis compare-and-delete contract; actual Lua still needs a live Redis test.
+        // 模拟 Redis 比较并删除的行为，Lua 脚本仍需用真实 Redis 验证。
         when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class))).thenAnswer(call -> {
             List<String> keys = call.getArgument(1);
             String token = call.getArgument(2);
@@ -79,7 +79,7 @@ class IdempotentAspectTest {
         when(first.proceed()).thenAnswer(call -> {
             String key = markers.keySet().iterator().next();
             oldToken.set(markers.get(key));
-            markers.put(key, "successor-token"); // Simulate expiration followed by a new owner.
+            markers.put(key, "successor-token"); // 模拟标记过期后由新请求占位。
             throw failure;
         });
         assertSame(failure, assertThrows(RuntimeException.class, () -> aspect.around(first)));

@@ -12,6 +12,6 @@ public class RepositoryMember {
     private Long id;
     private Long repoId;
     private Long userId;
-    private String role;  // OWNER/READ/WRITE
+    private String role;  // 角色：OWNER（所有者）、READ（只读）、WRITE（可写）
     private LocalDateTime createdAt;
 }

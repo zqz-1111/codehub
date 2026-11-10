@@ -20,7 +20,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/** Best-effort indexing after metadata commits, not a transactional outbox. */
+/** 元数据提交后尽力触发索引，此处没有使用事务发件箱。 */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -77,7 +77,7 @@ public class FileIndexDispatcher {
                 aiService.buildIndex(message.getRepoId(), message.getFileId(),
                         message.getFilePath(), message.getContent());
             } catch (Exception indexFailure) {
-                // Committed uploads stay successful; reconciliation is still an operational task.
+                // 索引失败不影响已提交的上传，索引数据仍需通过运维对账补齐。
                 log.error("文件已提交但索引构建失败: fileId={}", message.getFileId(), indexFailure);
             }
         }

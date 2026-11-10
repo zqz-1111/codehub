@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/** Real service and Spring transaction callbacks; external stores and database commands are mocked. */
+/** 使用真实服务和 Spring 事务回调，外部存储及数据库命令使用模拟对象。 */
 class ChunkUploadServiceTest {
     private final UploadSessionMapper sessions = mock(UploadSessionMapper.class);
     private final UploadPartMapper parts = mock(UploadPartMapper.class);

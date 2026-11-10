@@ -16,7 +16,7 @@ foreach ($container in @('codehub-mysql','codehub-redis','codehub-minio','codehu
     & docker start $container
     if ($LASTEXITCODE -ne 0) { throw "启动已有容器失败: $container；本脚本不会重建数据卷。" }
 }
-# Existing deployments must already have the additive schema upgrade.
+# 已有部署必须先完成增量表结构迁移。
 $schemaQuery = "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='codehub' AND table_name='upload_parts' AND column_name='size_bytes'; SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='codehub' AND table_name='upload_sessions';"
 $mysqlReady = $false
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -39,7 +39,7 @@ if ('codehub-validation' -notin @($vhosts)) {
 New-Item -ItemType Directory -Force -Path $RuntimeDirectory | Out-Null
 $processes = @{}
 if (-not (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue)) {
-    # Explicit placeholders prevent accidental paid inference from inherited environment settings.
+    # 显式使用占位值，防止继承环境配置后意外触发付费推理。
     $backend = Start-Process -FilePath $java -ArgumentList @('-jar',$jar,
         '--server.address=127.0.0.1','--server.port=8080',
         '--spring.rabbitmq.virtual-host=codehub-validation',

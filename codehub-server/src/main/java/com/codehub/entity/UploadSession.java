@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-/** Persistent ownership, manifest and merge receipt for one upload. */
+/** 持久化保存一次上传的归属、分片清单和合并回执。 */
 @Data
 @TableName("upload_sessions")
 public class UploadSession {

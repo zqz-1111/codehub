@@ -17,6 +17,6 @@ public class UploadPart {
     private Integer chunkIndex;
     private String objectKey;
     private Long sizeBytes;
-    private String status;  // UPLOADING / MERGED
+    private String status;  // 状态：UPLOADING（上传中）、MERGED（已合并）
     private LocalDateTime createdAt;
 }

@@ -17,7 +17,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Real MySQL pagination, all inserted rows roll back after each test. */
+/** 使用真实 MySQL 验证分页，每个测试插入的数据在结束时回滚。 */
 @SpringBootTest
 @Transactional
 class RepositoryPaginationIntegrationTest {

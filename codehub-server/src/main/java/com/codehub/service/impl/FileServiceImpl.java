@@ -97,7 +97,7 @@ public class FileServiceImpl implements FileService {
         // 8. 更新仓库的updatedAt
         repoMapper.updateById(repoMapper.selectById(repoId));
 
-        // Only publish after the metadata transaction commits, matching the chunked path.
+        // 和分片上传一样，等元数据事务提交后才发布索引消息。
         if (indexDispatcher.accepts(fileEntity)) {
             try (var input = file.getInputStream()) {
                 indexDispatcher.schedule(fileEntity, input);
@@ -301,7 +301,7 @@ public class FileServiceImpl implements FileService {
             throw new BusinessException(401, "未登录");
         }
         Repository repo = getRepo(repoId);
-        if (repo.getOwnerId().equals(userId)) return; // OWNER
+        if (repo.getOwnerId().equals(userId)) return; // 仓库所有者
 
         RepositoryMember member = memberMapper.selectOne(
                 new LambdaQueryWrapper<RepositoryMember>()

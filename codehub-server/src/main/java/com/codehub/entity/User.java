@@ -13,8 +13,8 @@ public class User {
     private String username;
     private String password;
     private String email;
-    private String role;      // USER/ADMIN
-    private String status;    // ACTIVE/BANNED/PENDING
+    private String role;      // 角色：USER（用户）、ADMIN（管理员）
+    private String status;    // 状态：ACTIVE（正常）、BANNED（禁用）、PENDING（待处理）
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

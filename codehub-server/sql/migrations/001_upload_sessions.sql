@@ -1,10 +1,10 @@
--- Existing installations only. Run against a backup, during a maintenance window.
--- Preflight MUST return zero rows before adding the unique index.
--- If rows exist, stop and resolve legacy duplicates manually; this migration deletes no data.
+-- 仅用于已部署的实例。请在维护窗口内对备份执行。
+-- 添加唯一索引前，预检查询必须返回零行。
+-- 如果查到记录，请停止并手动处理历史重复项。本迁移不会删除任何数据。
 SELECT upload_id, chunk_index, COUNT(*) AS duplicate_count
 FROM upload_parts GROUP BY upload_id, chunk_index HAVING COUNT(*) > 1;
 
--- Execute each DDL once; MySQL DDL implicitly commits. Do not rerun on a fresh init.sql database.
+-- 每条 DDL 只执行一次，MySQL 执行 DDL 时会隐式提交。通过 init.sql 初始化的新库无需执行。
 ALTER TABLE upload_parts ADD COLUMN size_bytes BIGINT NULL AFTER object_key;
 ALTER TABLE upload_parts ADD UNIQUE KEY uk_upload_chunk (upload_id, chunk_index);
 CREATE TABLE upload_sessions (
@@ -19,5 +19,5 @@ CREATE TABLE upload_sessions (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Legacy rows have no trustworthy owner/manifest. Use a new uploadId to re-upload.
--- Do not synthesize ownership or totalChunks from incomplete legacy rows.
+-- 历史记录缺少可信的归属和分片清单，请用新的 uploadId 重新上传。
+-- 不要用不完整的历史记录推断归属或 totalChunks。

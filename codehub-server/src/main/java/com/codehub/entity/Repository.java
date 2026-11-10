@@ -13,7 +13,7 @@ public class Repository {
     private String name;
     private Long ownerId;
     private String description;
-    private String visibility;  // PUBLIC/PRIVATE
+    private String visibility;  // 可见性：PUBLIC（公开）、PRIVATE（私有）
     private String defaultBranch;
     private Integer starCount;
     private LocalDateTime createdAt;

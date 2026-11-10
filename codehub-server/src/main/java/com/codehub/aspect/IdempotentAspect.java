@@ -37,7 +37,7 @@ public class IdempotentAspect {
     private final StringRedisTemplate redisTemplate;
     private final IdempotencyKeyGenerator keyGenerator;
 
-    // Compare ownership and delete atomically; an expired request must not delete its successor.
+    // 原子地核对归属并删除，避免过期请求删掉后续请求的标记。
     private static final DefaultRedisScript<Long> RELEASE_SCRIPT = new DefaultRedisScript<>(
             "if redis.call('get', KEYS[1]) == ARGV[1] then "
                     + "return redis.call('del', KEYS[1]) else return 0 end", Long.class);
@@ -98,12 +98,12 @@ public class IdempotentAspect {
         try {
             return joinPoint.proceed();
         } catch (Throwable e) {
-            // Keep the existing exception retry policy, but release only our own marker.
-            // This is short-window duplicate suppression, not proof of business rollback.
+            // 保留原有的异常重试规则，只释放属于本次请求的标记。
+            // 此处只做短窗口防重，业务是否回滚由实际事务决定。
             try {
                 redisTemplate.execute(RELEASE_SCRIPT, List.of(key), requestToken);
             } catch (Exception releaseFailure) {
-                // Preserve the original business exception; TTL bounds a failed cleanup.
+                // 保留原始业务异常，清理失败时仍有过期时间兜底。
                 log.warn("防重标记释放失败，等待过期: key={}", key, releaseFailure);
                 e.addSuppressed(releaseFailure);
             }

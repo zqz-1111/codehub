@@ -19,13 +19,13 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Builds stable fingerprints for JSON-style controller arguments. */
+/** 为可表示为 JSON 的控制器参数生成稳定的指纹。 */
 @Component
 public class IdempotencyKeyGenerator {
     private final ObjectMapper mapper;
 
     public IdempotencyKeyGenerator(ObjectMapper objectMapper) {
-        // Preserve application modules without changing its shared HTTP serializer.
+        // 保留应用已注册的模块，避免修改 HTTP 共用的序列化器。
         mapper = objectMapper.copy();
         mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
         mapper.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -35,17 +35,17 @@ public class IdempotencyKeyGenerator {
         List<Object> businessArgs = new ArrayList<>();
         for (Object arg : args) {
             if (!(arg instanceof ServletRequest) && !(arg instanceof ServletResponse)) {
-                // Nulls and argument positions are significant; do not concatenate strings.
+                // 空值和参数位置均参与区分，避免直接拼接字符串。
                 businessArgs.add(arg instanceof MultipartFile file ? fileFingerprint(file) : arg);
             }
         }
         try {
             byte[] json = mapper.writeValueAsBytes(businessArgs);
             String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json));
-            // Fully qualified signature keeps overloads and controllers separate.
+            // 用完整方法签名区分重载方法和不同控制器。
             return "idempotent:v2:" + userId + ":" + method.toGenericString() + ":" + digest;
         } catch (JsonProcessingException | NoSuchAlgorithmException e) {
-            // Fail closed: a shared fallback key would incorrectly group unrelated requests.
+            // 生成失败时拒绝继续，共用备用键会把无关请求误归为一组。
             throw new IllegalStateException("无法生成请求防重指纹", e);
         }
     }

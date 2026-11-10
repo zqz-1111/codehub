@@ -30,7 +30,7 @@ public class CodeChunker {
 
     @Data
     public static class CodeChunk {
-        private String chunkType;    // CLASS / METHOD / IMPORT
+        private String chunkType;    // 片段类型：CLASS（类）、METHOD（方法）、IMPORT（导入）
         private String chunkName;    // 类名或方法名
         private String content;      // 代码内容
         private String imports;      // import列表（逗号分隔）
