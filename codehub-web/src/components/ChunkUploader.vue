@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Files } from '@element-plus/icons-vue'
 import request from '../utils/request'
@@ -14,59 +14,86 @@ const emit = defineEmits<{
 
 const uploading = ref(false)
 const progress = ref(0)
-const CHUNK_SIZE = 1024 * 1024 // 每片 1 MB
+const CHUNK_SIZE = 1024 * 1024 // 每片 1 MiB
 
-async function handleUpload(uploadOption: any) {
-  const file = uploadOption.file as File
-  if (!file) return
+interface UploadSession {
+  file: File
+  repoId: number
+  uploadId: string
+  totalChunks: number
+  nextChunk: number
+}
+
+const failedSession = shallowRef<UploadSession | null>(null)
+
+async function handleUpload({ file }: { file: File }) {
+  if (uploading.value) return
   if (file.size === 0) {
     ElMessage.warning('请选择非空文件')
     return
   }
 
-  uploading.value = true
-  progress.value = 0
+  return uploadFile({
+    file,
+    repoId: props.repoId,
+    uploadId: generateUploadId(),
+    totalChunks: Math.ceil(file.size / CHUNK_SIZE),
+    nextChunk: 0,
+  })
+}
 
-  const uploadId = generateUploadId()
-  const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+function retryUpload() {
+  const session = failedSession.value
+  if (session) return uploadFile(session)
+}
+
+async function uploadFile(session: UploadSession) {
+  if (uploading.value) return
+  const { file, repoId, uploadId, totalChunks } = session
+  failedSession.value = null
+  uploading.value = true
+  progress.value = Math.floor((session.nextChunk / totalChunks) * 100)
+  const chunksUrl = `/repos/${repoId}/files/chunks`
 
   try {
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE
+    while (session.nextChunk < totalChunks) {
+      const chunkIndex = session.nextChunk
+      const start = chunkIndex * CHUNK_SIZE
       const end = Math.min(start + CHUNK_SIZE, file.size)
       const chunk = file.slice(start, end)
 
       const formData = new FormData()
       formData.append('file', chunk, file.name)
       formData.append('uploadId', uploadId)
-      formData.append('chunkIndex', i.toString())
+      formData.append('chunkIndex', chunkIndex.toString())
       formData.append('totalChunks', totalChunks.toString())
 
-      await request.post(`/repos/${props.repoId}/files/chunks`, formData, {
+      await request.post(chunksUrl, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
-      progress.value = Math.round(((i + 1) / totalChunks) * 100)
+      session.nextChunk += 1
+      progress.value = Math.floor((session.nextChunk / totalChunks) * 100)
     }
 
-    await request.post(`/repos/${props.repoId}/files/chunks/merge`, null, {
-      params: {
-        uploadId,
-        fileName: file.name,
-        path: file.name,
-      },
+    await request.post(`${chunksUrl}/merge`, null, {
+      params: { uploadId, fileName: file.name, path: file.name },
       timeout: 120000,
     })
 
     ElMessage.success(`大文件「${file.name}」分片上传并合并完成`)
     emit('uploaded')
-  } catch (e: any) {
-    ElMessage.error('分片上传失败: ' + (e.message || '网络异常'))
+  } catch (error) {
+    failedSession.value = session
+    const stage = session.nextChunk < totalChunks ? `第 ${session.nextChunk + 1} 片上传` : '分片合并'
+    const detail = error instanceof Error && error.message ? error.message : '网络异常'
+    ElMessage.error(`${stage}失败：${detail}`)
   } finally {
     uploading.value = false
     progress.value = 0
   }
 }
+
 
 function generateUploadId(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
@@ -81,17 +108,30 @@ function generateUploadId(): string {
       :disabled="uploading"
       accept="*"
     >
-      <button class="chunk-upload-btn" :disabled="uploading" title="1MiB 分片上传">
+      <button type="button" class="chunk-upload-btn" :disabled="uploading" title="1MiB 分片上传">
         <el-icon><Files /></el-icon>
         <span v-if="!uploading">分片上传</span>
+        <span v-else-if="progress === 100">正在合并</span>
         <span v-else>{{ progress }}%</span>
       </button>
     </el-upload>
+    <button
+      v-if="failedSession"
+      type="button"
+      class="chunk-upload-btn"
+      :title="failedSession.file.name"
+      @click="retryUpload"
+    >
+      {{ failedSession.nextChunk < failedSession.totalChunks
+        ? `从第 ${failedSession.nextChunk + 1} 片继续`
+        : '重试合并' }}
+    </button>
   </div>
 </template>
 
 <style scoped>
 .chunk-uploader-wrap {
+  gap: 4px;
   display: inline-flex;
   align-items: center;
 }

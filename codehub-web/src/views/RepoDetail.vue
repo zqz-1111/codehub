@@ -286,7 +286,7 @@ onMounted(() => {
             </el-upload>
 
             <!-- 1MB 切片大文件上传 -->
-            <ChunkUploader :repo-id="repoId" @uploaded="loadFiles" />
+            <ChunkUploader :key="repoId" :repo-id="repoId" @uploaded="loadFiles" />
           </div>
         </div>
 
